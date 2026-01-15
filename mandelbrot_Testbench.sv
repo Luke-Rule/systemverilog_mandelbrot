@@ -1,11 +1,11 @@
 /******************************************************************************/
-/* Module:   drawing_Testbench                                                */
-/* Modified: October 2025                                                     */
+/* Module:   Testbench                                                        */
+/* Modified: Deccmber 2025                                                    */
 /* Author:   L Rule                                                           */
 /*                                                                            */
 /* Description:                                                               */
 /*                                                                            */
-/* Line drawing unit testbench: gets drawing commands from input file, checks */
+/* Mandlebrot drawing unit testbench: gets commands from input file, checks   */
 /* the framestore writes against expected output files, and checks protocol   */
 /* correctness with assertions.                                               */
 /*                                                                            */
