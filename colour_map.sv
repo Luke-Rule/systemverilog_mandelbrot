@@ -1,13 +1,12 @@
 /******************************************************************************/
 /*                                                                            */
-/*  Module:   template                                                        */
-/*  Modified: August 2025                                                     */
-/*  Author:   J Garside                                                       */
+/*  Module:   colour_map                                                      */
+/*  Modified: December 2025                                                   */
+/*  Author:   L Rule                                                          */
 /*                                                                            */
 /*  Description:                                                              */
-/*  This is an inactive cell which takes the place of a drawing function.     */
-/*  It 'ties off' outputs tidily.                                             */
-/*                                                                            */
+/*  Given 6 colours, interpolates all intermediate colours between them, and  */
+/*  outputs a colour map of these evenly spaced, sized to max iterations      */
 /******************************************************************************/
  
 `timescale 1ns / 10ps 
