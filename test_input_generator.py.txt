@@ -1,0 +1,155 @@
+import random
+
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
+
+# script to write test inputs to a file in the format:
+# x_center, y_center (both Q3.29 hex), zoom_level, max_iterations (both 32 bit ints),
+# colour_1, colour_2, colour_3, colour_4, colour_5, colour_6 (5 red bits 6 green bits 5 blue bits each in hex)
+
+# helper functions for mandelbrot generation
+
+def generate_colour():
+    # return 255 # white for easier debugging
+    return random.randint(1, 2**16 - 1)
+
+def float_to_q3_29(val):
+    # Q3.29 fixed point conversion
+    # 3 integer bits (1 sign, 2 magnitude), 29 fractional bits
+    # Range is approx -4 to 4
+    fixed_val = int(val * (1 << 29))
+    return fixed_val & 0xFFFFFFFF
+
+def write_test_case(f, x_center, y_center, zoom, max_iterations, colours, instant_ack=True, eof=False):
+    x_hex = "0x" + f"{float_to_q3_29(x_center):08x}"
+    y_hex = "0x" + f"{float_to_q3_29(y_center):08x}"
+    line_parts = [x_hex, y_hex, str(zoom), str(max_iterations)] + colours
+    line = " ".join(line_parts)
+    line += " 0" if instant_ack else " 1"
+    f.write(line)
+    if not eof:
+        f.write("\n")
+
+def write_test_case_random_colours(f, x_center, y_center, zoom, max_iterations, instant_ack=True, eof=False):
+    colours = ["0x" + f"{generate_colour():04x}" for _ in range(6)]
+    x_hex = "0x" + f"{float_to_q3_29(x_center):08x}"
+    y_hex = "0x" + f"{float_to_q3_29(y_center):08x}"
+    line_parts = [x_hex, y_hex, str(zoom), str(max_iterations)] + colours
+    line = " ".join(line_parts)
+    line += " 0" if instant_ack else " 2"
+    f.write(line)
+    if not eof:
+        f.write("\n")
+
+def main():
+    test_cases = [
+    # Interesting mandelbrot windows
+    # Full view
+    (-0.5, 0.0, 0),
+    # Edge of main cardioid
+    (-0.7467, 0.163, 6),
+    # Valley between main cardioid and period-2 bulb
+    (-0.749, 0.07, 5),
+    # Outer edge of valley between period-2 bulb and period-3 bulb
+    (-1.26, -0.07, 5),
+    # Repeated smaller mandelbrot
+    (-1.766, 0, 5),
+    # Outer branches 
+    (-0.2, -0.865, 3),
+    # Very zoomed in
+    (0.001643721971153, -0.822467633298876, 8),
+    # right valley
+    (0.285, 0.0, 5),
+    # Seahorse valley
+    (-0.745, 0.186, 6),
+    # Elephant valley
+    (0.273, 0.007, 7),
+    # Edge of mandelbrot set
+    (2.0, 1.5, 0),
+    ( -2.0, -1.5, 0),
+    (0.0, 1.5, 0),
+    (0.0, -1.5, 0),
+    # Origin
+    (0.0, 0.0, 0),
+    # Edge cases for Q3.29
+    (3.999999, 0.0, 1),  # max positive
+    (-4.0, 0.0, 1),         # max negative
+    (0.0, 3.999999, 1),  # max positive
+    (0.0, -4.0, 1),         # max negative
+    ]
+
+    # Add some random test cases
+    while len(test_cases) < 25:
+        # area containing most non-escapers for mandelbrot
+        x = random.uniform(-1.5, 0.5)
+        y = random.uniform(-1.0, 1.0)
+        # recalculate if points are roughly inside any of the 3 main bulbs:
+        q = (x - 0.25)**2 + y**2
+        if q * (q + x - 0.25) <= 0.25 * y**2:
+            continue
+        if (x + 1)**2 + y**2 <= 0.25**2:
+            continue
+        if (x + 0.5)**2 + y**2 <= (1/8)**2:
+            continue
+        zoom = random.randint(0, 10)
+        test_cases.append((x, y, zoom))
+    
+
+    with open("/home/p74644lr/Questa/COMP32211/src/Phase_2/input_file.txt", "w") as f:
+        for x, y, zoom in test_cases:
+            write_test_case_random_colours(f, x, y, zoom, 180)
+
+        # colour edge cases
+        colours = [
+            # all colours the same
+            ["0x5959" for _ in range(6)],
+            # colours close together
+            ["0x0001", "0x0002", "0x0003", "0x0004", "0x0005", "0x0006"],
+            # colours close together but rgb all different
+            ["0xF800", "0x07E0", "0x001F", "0xFC00", "0x03FF", "0xF81F"],
+            # colours far apart but rgb all different
+            ["0xF810", "0x07F0", "0x0010", "0xFC1F", "0x03E0", "0xF80F"]
+        ]
+        for colour_set in colours:
+            write_test_case(f, 0.0, 0.0, 1, 128, colour_set)
+
+        x = 0.001643721971153
+        y = -0.822467633298876
+
+        #zoom edge cases
+        zooms = [
+            # min zoom
+            0,
+            # max zoom
+            10,
+            # positive oob zoom
+            15,
+            # negative oob zoom
+            -5
+        ]
+        for zoom in zooms:
+            write_test_case_random_colours(f, x, y, zoom, 128)
+
+        # not instant ack
+        write_test_case_random_colours(f, x, y, 5, 256, instant_ack=False)
+
+        # iterations edge cases
+        iterations = [
+            # 0 iterations
+            0,
+            # low iterations
+            16,
+            40,
+            # negative oob iterations
+            -50,
+            # positive oob iterations
+            550,
+            #max iterations
+            511
+        ]
+        for i in range(len(iterations)):
+            eof = (i == len(iterations) - 1)
+            write_test_case_random_colours(f, x, y, 0, iterations[i], eof=eof)
+
+if __name__ == "__main__":
+    main()
